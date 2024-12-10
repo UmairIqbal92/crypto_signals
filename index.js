@@ -3,7 +3,6 @@ const TelegramBot = require('node-telegram-bot-api');
 
 // Telegram Bot Token (replace with your actual bot token)
 const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
-const chatId = 'YOUR_CHAT_ID'; // Replace with the chat ID you want to send signals to
 
 // Create Telegram Bot Instance
 const bot = new TelegramBot(botToken, { polling: true });
@@ -24,8 +23,8 @@ const options = {
   },
 };
 
-// Function to Fetch Data and Send Signals
-async function fetchAndSendSignal() {
+// Function to Fetch Signal Data
+async function fetchSignal() {
   try {
     const response = await axios.request(options);
     const data = response.data.heatMapAnalysis[0]; // Adjust as per your API response structure
@@ -34,29 +33,33 @@ async function fetchAndSendSignal() {
     const message = `
 📊 **Signal for BTC/USDT**
 - 📈 **Long/Short Ratio**: ${data.longShortRatio}
-- 🟩 **Long Accounts**: ${data.longAccount * 100}%
-- 🟥 **Short Accounts**: ${data.shortAccount * 100}%
+- 🟩 **Long Accounts**: ${(data.longAccount * 100).toFixed(2)}%
+- 🟥 **Short Accounts**: ${(data.shortAccount * 100).toFixed(2)}%
 - 💵 **Buy/Sell Ratio**: ${data.buySellRatio}
 - 🔥 **Total Liquidation**: ${data.totalLiquidationAmount.toFixed(2)} USDT
 - 💹 **Market Price**: ${data.marketPrice}
 - 📌 **Price Action**: ${data.priceAction}
 - 🧠 **Analysis**: ${data.analysis}
 `;
-
-    // Send the message via Telegram
-    await bot.sendMessage(chatId, message);
-    console.log('Signal sent:', message);
+    return message;
   } catch (error) {
-    console.error('Error fetching or sending signal:', error.message);
+    console.error('Error fetching signal:', error.message);
+    return 'Error fetching signal data. Please try again later.';
   }
 }
 
-// Schedule Signal Every Minute
-setInterval(fetchAndSendSignal, 60 * 1000);
+// Handle Commands from User
+bot.on('message', async (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
 
-// Bot Listener for Commands (Optional)
-bot.on('message', (msg) => {
-  if (msg.text === '/start') {
-    bot.sendMessage(chatId, 'Crypto Signals Bot Started! 🚀');
+  if (text === '/start') {
+    bot.sendMessage(chatId, 'Welcome to Crypto Signals Bot! Use /signal to get the latest crypto signal. 🚀');
+  } else if (text === '/signal') {
+    bot.sendMessage(chatId, 'Fetching the latest signal... ⏳');
+    const signalMessage = await fetchSignal();
+    bot.sendMessage(chatId, signalMessage, { parse_mode: 'Markdown' });
+  } else {
+    bot.sendMessage(chatId, 'Unknown command. Use /start or /signal to interact with the bot.');
   }
 });
