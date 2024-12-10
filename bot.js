@@ -3,11 +3,10 @@ const TelegramBot = require('node-telegram-bot-api');
 
 // Telegram Bot Token (replace with your actual bot token)
 const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
-const groupChatId = '2290339976'; // Replace with your group's chat ID
+const groupChatId = '-1002290339976'; // Add "-100" prefix for supergroup IDs
 
 // Create Telegram Bot Instance
-const bot = new TelegramBot(botToken, { polling: true })
-;
+const bot = new TelegramBot(botToken, { polling: true });
 
 // API Request Options
 const options = {
@@ -44,6 +43,7 @@ async function fetchSignal() {
 - 📌 **Price Action**: ${data.priceAction}
 - 🧠 **Analysis**: ${data.analysis}
     `;
+    console.log('Fetched signal successfully:', message);
     return message;
   } catch (error) {
     console.error('Error fetching signal:', error.message);
@@ -54,7 +54,12 @@ async function fetchSignal() {
 // Send Signals to the Group Every Minute
 async function sendSignalsToGroup() {
   const signalMessage = await fetchSignal();
-  bot.sendMessage(groupChatId, signalMessage, { parse_mode: 'Markdown' });
+  try {
+    await bot.sendMessage(groupChatId, signalMessage, { parse_mode: 'Markdown' });
+    console.log('Signal sent to group:', groupChatId);
+  } catch (error) {
+    console.error('Error sending signal to group:', error.message);
+  }
 }
 
 // Schedule Signal Sending Every Minute
@@ -66,5 +71,5 @@ setInterval(() => {
 // Optional: Log when the bot starts
 bot.on('polling_error', (error) => console.error('Polling error:', error.message));
 bot.on('message', (msg) => {
-  console.log('Message received:', msg.text);
+  console.log(`Message received in chat (${msg.chat.id}):`, msg.text);
 });
