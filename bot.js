@@ -6,7 +6,8 @@ const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
 const groupChatId = '-2290339976'; // Replace with your group's chat ID
 
 // Create Telegram Bot Instance
-const bot = new TelegramBot(botToken, { polling: true });
+const bot = new TelegramBot(botToken, { polling: true })
+;
 
 // API Request Options
 const options = {
