@@ -5,8 +5,11 @@ const TelegramBot = require('node-telegram-bot-api');
 const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
 const groupChatId = '-1002290339976'; // Add "-100" prefix for supergroup IDs
 
-// Create Telegram Bot Instance
-const bot = new TelegramBot(botToken, { polling: true });
+// Create Telegram Bot Instance with explicit cancellation enabled
+const bot = new TelegramBot(botToken, { 
+  polling: true, 
+  cancellation: true 
+});
 
 // API Request Options
 const options = {
@@ -47,13 +50,31 @@ async function fetchSignal() {
     return message;
   } catch (error) {
     console.error('Error fetching signal:', error.message);
-    return 'Error fetching signal data. Please try again later.';
+    throw error; // Rethrow for retry handling
   }
 }
 
-// Send Signals to the Group Every Minute
+// Fetch Signal with Retry Logic
+async function fetchSignalWithRetry(retries = 3) {
+  while (retries > 0) {
+    try {
+      return await fetchSignal();
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        console.log('Rate limit exceeded. Retrying...');
+        await new Promise((resolve) => setTimeout(resolve, 30 * 1000)); // Wait for 30 seconds
+      } else {
+        throw error; // If not rate limit, rethrow the error
+      }
+    }
+    retries--;
+  }
+  return 'Unable to fetch signal due to rate limits. Please try again later.';
+}
+
+// Send Signals to the Group
 async function sendSignalsToGroup() {
-  const signalMessage = await fetchSignal();
+  const signalMessage = await fetchSignalWithRetry();
   try {
     await bot.sendMessage(groupChatId, signalMessage, { parse_mode: 'Markdown' });
     console.log('Signal sent to group:', groupChatId);
@@ -62,14 +83,16 @@ async function sendSignalsToGroup() {
   }
 }
 
-// Schedule Signal Sending Every Minute
+// Schedule Signal Sending Every 2 Minutes
 setInterval(() => {
   console.log('Sending signal to group...');
   sendSignalsToGroup();
-}, 60 * 1000);
+}, 2 * 60 * 1000); // Adjusted to send every 2 minutes
 
-// Optional: Log when the bot starts
-bot.on('polling_error', (error) => console.error('Polling error:', error.message));
+// Log Incoming Messages
 bot.on('message', (msg) => {
   console.log(`Message received in chat (${msg.chat.id}):`, msg.text);
 });
+
+// Log Polling Errors
+bot.on('polling_error', (error) => console.error('Polling error:', error.message));
