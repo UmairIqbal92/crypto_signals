@@ -1,6 +1,14 @@
 {
+  "name": "crypto-signals-bot",
+  "version": "1.0.0",
+  "description": "A Telegram bot for crypto signals.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
   "dependencies": {
-    "axios": "^1.7.9",
-    "node-telegram-bot-api": "^0.66.0"
+    "axios": "^1.4.0",
+    "node-telegram-bot-api": "^0.57.0",
+    "winston": "^3.8.2"
   }
 }
