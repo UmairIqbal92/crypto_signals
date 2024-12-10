@@ -3,7 +3,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 // Telegram Bot Token (replace with your actual bot token)
 const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
-const groupChatId = '-1002290339976'; // Replace with your group's chat ID
+const groupChatId = '-2290339976'; // Replace with your group's chat ID
 
 // Create Telegram Bot Instance
 const bot = new TelegramBot(botToken, { polling: true });
