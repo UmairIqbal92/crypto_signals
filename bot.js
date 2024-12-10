@@ -2,7 +2,8 @@ const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 
 // Telegram Bot Token (replace with your actual bot token)
-const botToken = '7637468356:AAFWoitLk5w8ZZXbIvIydn1M_B_tmsP7yIY';
+const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
+const groupChatId = '-1002290339976'; // Replace with your group's chat ID
 
 // Create Telegram Bot Instance
 const bot = new TelegramBot(botToken, { polling: true });
@@ -22,9 +23,6 @@ const options = {
     'x-rapidapi-host': 'ai-crypto-signals-technical-analysis-liquidation-heatmap.p.rapidapi.com',
   },
 };
-
-// Store Users Who Start the Bot
-const activeUsers = new Set();
 
 // Fetch and Format Signal Data
 async function fetchSignal() {
@@ -52,29 +50,20 @@ async function fetchSignal() {
   }
 }
 
-// Handle User Commands
-bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  const text = msg.text;
-
-  if (text === '/start') {
-    bot.sendMessage(chatId, 'Welcome to Crypto Signals Bot! You will receive signals every minute. 🚀');
-    activeUsers.add(chatId); // Add the user to active users list
-  } else if (text === '/stop') {
-    bot.sendMessage(chatId, 'You have stopped receiving signals. Use /start to subscribe again.');
-    activeUsers.delete(chatId); // Remove the user from active users list
-  } else {
-    bot.sendMessage(chatId, 'Unknown command. Use /start to receive signals or /stop to unsubscribe.');
-  }
-});
-
-// Send Signals Every Minute
-async function sendSignals() {
+// Send Signals to the Group Every Minute
+async function sendSignalsToGroup() {
   const signalMessage = await fetchSignal();
-  activeUsers.forEach((chatId) => {
-    bot.sendMessage(chatId, signalMessage, { parse_mode: 'Markdown' });
-  });
+  bot.sendMessage(groupChatId, signalMessage, { parse_mode: 'Markdown' });
 }
 
 // Schedule Signal Sending Every Minute
-setInterval(sendSignals, 60 * 1000);
+setInterval(() => {
+  console.log('Sending signal to group...');
+  sendSignalsToGroup();
+}, 60 * 1000);
+
+// Optional: Log when the bot starts
+bot.on('polling_error', (error) => console.error('Polling error:', error.message));
+bot.on('message', (msg) => {
+  console.log('Message received:', msg.text);
+});
