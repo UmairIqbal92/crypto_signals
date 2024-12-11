@@ -1,15 +1,25 @@
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
+const winston = require('winston');
 
 // Telegram Bot Token (replace with your actual bot token)
-const botToken = '7852205226:AAGa3k08J2tNifVpf90_cmJRZS-nmdYTIzs';
-const groupChatId = '-1002290339976'; // Add "-100" prefix for supergroup IDs
+const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
 
-// Create Telegram Bot Instance with explicit cancellation enabled
-const bot = new TelegramBot(botToken, { 
-  polling: true, 
-  cancellation: true 
+// Logger Configuration
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(), // Log to console
+    new winston.transports.File({ filename: 'bot.log' }), // Log to a file
+  ],
 });
+
+// Create Telegram Bot Instance
+const bot = new TelegramBot(botToken, { polling: true });
 
 // API Request Options
 const options = {
@@ -27,11 +37,18 @@ const options = {
   },
 };
 
+// Store Users Who Start the Bot
+const activeUsers = new Set();
+
 // Fetch and Format Signal Data
 async function fetchSignal() {
+  logger.info('Fetching signal from API...');
   try {
     const response = await axios.request(options);
     const data = response.data.heatMapAnalysis[0]; // Fetch the latest data point
+
+    // Log API response for debugging
+    logger.debug('API Response', { data });
 
     // Format the message
     const message = `
@@ -46,53 +63,47 @@ async function fetchSignal() {
 - 📌 **Price Action**: ${data.priceAction}
 - 🧠 **Analysis**: ${data.analysis}
     `;
-    console.log('Fetched signal successfully:', message);
+
+    logger.info('Signal fetched successfully');
     return message;
   } catch (error) {
-    console.error('Error fetching signal:', error.message);
-    throw error; // Rethrow for retry handling
+    logger.error('Error fetching signal', { error: error.message });
+    return 'Error fetching signal data. Please try again later.';
   }
 }
 
-// Fetch Signal with Retry Logic
-async function fetchSignalWithRetry(retries = 3) {
-  while (retries > 0) {
-    try {
-      return await fetchSignal();
-    } catch (error) {
-      if (error.response && error.response.status === 429) {
-        console.log('Rate limit exceeded. Retrying...');
-        await new Promise((resolve) => setTimeout(resolve, 30 * 1000)); // Wait for 30 seconds
-      } else {
-        throw error; // If not rate limit, rethrow the error
-      }
-    }
-    retries--;
-  }
-  return 'Unable to fetch signal due to rate limits. Please try again later.';
-}
-
-// Send Signals to the Group
-async function sendSignalsToGroup() {
-  const signalMessage = await fetchSignalWithRetry();
-  try {
-    await bot.sendMessage(groupChatId, signalMessage, { parse_mode: 'Markdown' });
-    console.log('Signal sent to group:', groupChatId);
-  } catch (error) {
-    console.error('Error sending signal to group:', error.message);
-  }
-}
-
-// Schedule Signal Sending Every 2 Minutes
-setInterval(() => {
-  console.log('Sending signal to group...');
-  sendSignalsToGroup();
-}, 2 * 60 * 1000); // Adjusted to send every 2 minutes
-
-// Log Incoming Messages
+// Handle User Commands
 bot.on('message', (msg) => {
-  console.log(`Message received in chat (${msg.chat.id}):`, msg.text);
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  logger.info('Received message', { chatId, text });
+
+  if (text === '/start') {
+    logger.info('User subscribed', { chatId });
+    bot.sendMessage(chatId, 'Welcome to Crypto Signals Bot! You will receive signals every minute. 🚀');
+    activeUsers.add(chatId); // Add the user to active users list
+  } else if (text === '/stop') {
+    logger.info('User unsubscribed', { chatId });
+    bot.sendMessage(chatId, 'You have stopped receiving signals. Use /start to subscribe again.');
+    activeUsers.delete(chatId); // Remove the user from active users list
+  } else {
+    logger.warn('Unknown command received', { chatId, text });
+    bot.sendMessage(chatId, 'Unknown command. Use /start to receive signals or /stop to unsubscribe.');
+  }
 });
 
-// Log Polling Errors
-bot.on('polling_error', (error) => console.error('Polling error:', error.message));
+// Send Signals Every Minute
+async function sendSignals() {
+  const signalMessage = await fetchSignal();
+  activeUsers.forEach((chatId) => {
+    logger.info('Sending signal to user', { chatId });
+    bot.sendMessage(chatId, signalMessage, { parse_mode: 'Markdown' });
+  });
+}
+
+// Schedule Signal Sending Every Minute
+setInterval(() => {
+  logger.info('Sending signals to all active users...');
+  sendSignals();
+}, 60 * 1000);
