@@ -4,6 +4,7 @@ const winston = require('winston');
 
 // Telegram Bot Token (replace with your actual bot token)
 const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
+const groupChatId = '-1002290339976'; // Replace with your specific group ID (use -100 prefix for supergroups)
 
 // Logger Configuration
 const logger = winston.createLogger({
@@ -37,9 +38,6 @@ const options = {
   },
 };
 
-// Store Users Who Start the Bot
-const activeUsers = new Set();
-
 // Fetch and Format Signal Data
 async function fetchSignal() {
   logger.info('Fetching signal from API...');
@@ -72,38 +70,39 @@ async function fetchSignal() {
   }
 }
 
-// Handle User Commands
+// Handle Messages (Ignore All Except Specific Group)
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
-  const text = msg.text;
 
-  logger.info('Received message', { chatId, text });
+  if (chatId.toString() !== groupChatId) {
+    logger.info('Ignored message from unauthorized chat', { chatId });
+    return; // Ignore messages from private chats or other groups
+  }
 
-  if (text === '/start') {
-    logger.info('User subscribed', { chatId });
-    bot.sendMessage(chatId, 'Welcome to Crypto Signals Bot! You will receive signals every minute. 🚀');
-    activeUsers.add(chatId); // Add the user to active users list
-  } else if (text === '/stop') {
-    logger.info('User unsubscribed', { chatId });
-    bot.sendMessage(chatId, 'You have stopped receiving signals. Use /start to subscribe again.');
-    activeUsers.delete(chatId); // Remove the user from active users list
+  logger.info('Received message in target group', { chatId, text: msg.text });
+
+  if (msg.text === '/start') {
+    bot.sendMessage(chatId, 'Welcome to Crypto Signals Bot! I will send signals every minute in this group. 🚀');
+  } else if (msg.text === '/stop') {
+    bot.sendMessage(chatId, 'Stopping signals is not allowed for this group.');
   } else {
-    logger.warn('Unknown command received', { chatId, text });
-    bot.sendMessage(chatId, 'Unknown command. Use /start to receive signals or /stop to unsubscribe.');
+    logger.warn('Unknown command received in group', { chatId, text: msg.text });
   }
 });
 
-// Send Signals Every Minute
-async function sendSignals() {
+// Send Signals to the Specific Group Only
+async function sendSignalsToGroup() {
   const signalMessage = await fetchSignal();
-  activeUsers.forEach((chatId) => {
-    logger.info('Sending signal to user', { chatId });
-    bot.sendMessage(chatId, signalMessage, { parse_mode: 'Markdown' });
-  });
+  try {
+    await bot.sendMessage(groupChatId, signalMessage, { parse_mode: 'Markdown' });
+    logger.info('Signal sent to group:', { groupChatId });
+  } catch (error) {
+    logger.error('Error sending signal to group', { error: error.message });
+  }
 }
 
 // Schedule Signal Sending Every Minute
 setInterval(() => {
-  logger.info('Sending signals to all active users...');
-  sendSignals();
+  logger.info('Sending signals to the target group...');
+  sendSignalsToGroup();
 }, 60 * 1000);
