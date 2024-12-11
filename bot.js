@@ -32,7 +32,7 @@ const options = {
     symbol: 'BTCUSDT',
   },
   headers: {
-    'x-rapidapi-key': 'ebefe7429emsheede099a8aa1b4ap12b4b0jsnc7c9fabe16a5',
+    'x-rapidapi-key': '209fc7f1a7msh11b6cee2029972cp159c2ejsn6dc4000b7301',
     'x-rapidapi-host': 'ai-crypto-signals-technical-analysis-liquidation-heatmap.p.rapidapi.com',
   },
 };
