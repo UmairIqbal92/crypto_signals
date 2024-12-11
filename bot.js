@@ -4,7 +4,7 @@ const winston = require('winston');
 
 // Telegram Bot Token (replace with your actual bot token)
 const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
-const groupChatId = '-1002290339976'; // Replace with your specific group ID (use -100 prefix for supergroups)
+const groupChatId = '-1004747112599'; // Replace with your specific group ID (use -100 prefix for supergroups)
 
 // Logger Configuration
 const logger = winston.createLogger({
