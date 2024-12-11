@@ -2,7 +2,7 @@ const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 
 // Telegram Bot Token (replace with your actual bot token)
-const botToken = '7916658911:AAGhrHSmrxms_k-6WQ96vhVfXrcOAzO0FIM';
+const botToken = '7852205226:AAGa3k08J2tNifVpf90_cmJRZS-nmdYTIzs';
 const groupChatId = '-1002290339976'; // Add "-100" prefix for supergroup IDs
 
 // Create Telegram Bot Instance with explicit cancellation enabled
